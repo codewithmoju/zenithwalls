@@ -1,8 +1,9 @@
 {
   "expo": {
     "name": "ZenithWalls",
-    "slug": "ZenithWalls",
+    "slug": "zenithwalls",
     "version": "1.0.0",
+    "owner": "muhammadmoaiz",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,17 +14,32 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zenithwalls.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.zenithwalls.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/716926bb-f6e7-4884-8bc6-06ce88a161ba"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "716926bb-f6e7-4884-8bc6-06ce88a161ba"
+      }
     }
   }
 }

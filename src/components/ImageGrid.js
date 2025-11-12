@@ -1,6 +1,6 @@
 // Import necessary components and libraries from React Native and other dependencies
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Image, StyleSheet, Pressable, ActivityIndicator, Dimensions, Platform } from 'react-native';
+import { View, Image, StyleSheet, Pressable, ActivityIndicator, Dimensions, Platform, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../constants/themes';
 import { hp, wp } from '../helpers/common';
@@ -8,6 +8,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
 import { BlurView } from 'expo-blur';
 import LoadingIndicator from './LoadingIndicator';
+import { MaterialIcons } from '@expo/vector-icons';
 import { 
   getGridColumns, 
   getSpacing, 
@@ -24,20 +25,57 @@ const getRandomHeight = () => {
   return heights[Math.floor(Math.random() * heights.length)];
 };
 
-// Function to cache image
+// Function to cache image with improved error handling and retry logic
 const cacheImage = async (uri) => {
   try {
-    const filename = uri.split('/').pop();
-    const path = `${FileSystem.cacheDirectory}${filename}`;
-    const image = await FileSystem.getInfoAsync(path);
+    if (!uri) {
+      console.error('Invalid image URI provided');
+      return null;
+    }
     
+    // Extract filename from URI
+    const filename = uri.split('/').pop();
+    if (!filename) {
+      console.error('Could not extract filename from URI:', uri);
+      return uri;
+    }
+    
+    // Create path for cached file
+    const path = `${FileSystem.cacheDirectory}${filename}`;
+    
+    // Check if image already exists in cache
+    const image = await FileSystem.getInfoAsync(path);
     if (image.exists) {
+      console.log('Image found in cache:', path);
       return image.uri;
     }
     
-    const newImage = await FileSystem.downloadAsync(uri, path);
-    return newImage.uri;
+    // Download image with retry logic
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError = null;
+    
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`Downloading image (attempt ${attempts + 1}):`, uri);
+        const newImage = await FileSystem.downloadAsync(uri, path);
+        console.log('Image downloaded successfully:', path);
+        return newImage.uri;
+      } catch (downloadError) {
+        lastError = downloadError;
+        console.error(`Download attempt ${attempts + 1} failed:`, downloadError);
+        attempts++;
+        // Wait before retrying (exponential backoff)
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+    }
+    
+    console.error('All download attempts failed for:', uri, lastError);
+    return uri; // Fall back to original URI if all attempts fail
   } catch (error) {
+    console.error('Error in cacheImage function:', error);
     return uri;
   }
 };
@@ -45,18 +83,33 @@ const cacheImage = async (uri) => {
 const ImageItem = React.memo(({ item, aspectRatio, onPress }) => {
   const [imageLoading, setImageLoading] = useState(true);
   const [cachedUri, setCachedUri] = useState(null);
+  const [loadError, setLoadError] = useState(false);
 
   React.useEffect(() => {
     let isMounted = true;
     const loadAndCacheImage = async () => {
-      const uri = await cacheImage(item.webformatURL);
-      if (isMounted) {
-        setCachedUri(uri);
+      try {
+        // Ensure we have a valid URL
+        if (!item?.webformatURL) {
+          console.error('Invalid webformatURL:', item);
+          if (isMounted) setLoadError(true);
+          return;
+        }
+        
+        // Try to cache the image
+        const uri = await cacheImage(item.webformatURL);
+        if (isMounted) {
+          setCachedUri(uri);
+          setLoadError(!uri);
+        }
+      } catch (error) {
+        console.error('Error loading image:', error);
+        if (isMounted) setLoadError(true);
       }
     };
     loadAndCacheImage();
     return () => { isMounted = false; };
-  }, [item.webformatURL]);
+  }, [item?.webformatURL]);
 
   return (
     <Pressable
@@ -71,18 +124,30 @@ const ImageItem = React.memo(({ item, aspectRatio, onPress }) => {
             </BlurView>
           </View>
         )}
-        <Animated.Image
-          source={{ uri: cachedUri || item.webformatURL }}
-          style={[
-            styles.image,
-            { aspectRatio },
-            !imageLoading && { ...theme.shadows.md }
-          ]}
-          resizeMode="cover"
-          onLoadStart={() => setImageLoading(true)}
-          onLoadEnd={() => setImageLoading(false)}
-          entering={FadeIn.duration(300)}
-        />
+        {loadError ? (
+          <View style={[styles.image, { aspectRatio }, styles.errorContainer]}>
+            <MaterialIcons name="broken-image" size={32} color={theme.colors.textSecondary} />
+            <Text style={styles.errorText}>Image unavailable</Text>
+          </View>
+        ) : (
+          <Animated.Image
+            source={{ uri: cachedUri || item.webformatURL }}
+            style={[
+              styles.image,
+              { aspectRatio },
+              !imageLoading && { ...theme.shadows.md }
+            ]}
+            resizeMode="cover"
+            onLoadStart={() => setImageLoading(true)}
+            onLoadEnd={() => setImageLoading(false)}
+            onError={(e) => {
+              console.error('Image loading error:', e.nativeEvent.error);
+              setLoadError(true);
+              setImageLoading(false);
+            }}
+            entering={FadeIn.duration(300)}
+          />
+        )}
       </View>
     </Pressable>
   );
@@ -193,13 +258,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
+    paddingBottom: getSpacing(10),
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   column: {
     flex: 1,
+    maxWidth: '100%',
   },
   itemContainer: {
     ...theme.shadows.lg,
@@ -232,6 +300,18 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     alignItems: 'center',
     marginTop: 20,
+    width: '100%',
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  errorText: {
+    marginTop: 8,
+    color: theme.colors.textSecondary,
+    fontSize: wp(3),
+    textAlign: 'center',
   },
 });
 

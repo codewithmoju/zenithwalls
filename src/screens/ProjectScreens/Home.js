@@ -426,14 +426,17 @@ const styles = StyleSheet.create({
     maxWidth: getMaxContainerWidth(),
     alignSelf: 'center',
     width: '100%',
+    paddingBottom: Platform.OS === 'ios' ? getSpacing(20) : 0,
   },
   headerContainer: {
     backgroundColor: theme.colors.background,
     paddingTop: Platform.OS === 'ios' ? getSpacing(50) : getSpacing(40),
+    width: '100%',
   },
   headerBlur: {
     paddingHorizontal: getContainerPadding(),
     paddingBottom: getSpacing(10),
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -470,6 +473,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.borderLight,
     ...theme.shadows.luxury,
+    width: '100%',
   },
   Icon: {
     marginRight: getSpacing(10),
@@ -490,9 +494,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 0,
+    flexGrow: 1,
   },
   contentContainer: {
     gap: theme.spacing.md,
+    flexGrow: 1,
+    width: '100%',
   },
   categories: {
     marginTop: 0, // Removed margin
@@ -500,6 +507,9 @@ const styles = StyleSheet.create({
   activeFiltersContainer: {
     paddingHorizontal: wp(4),
     gap: theme.spacing.sm,
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   activeFilter: {
     flexDirection: 'row',
@@ -510,6 +520,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     gap: theme.spacing.sm,
     ...theme.shadows.sm,
+    marginBottom: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   activeFilterText: {
     fontSize: hp(1.8),
@@ -527,8 +539,8 @@ const styles = StyleSheet.create({
   },
   scrollToTopButton: {
     position: 'absolute',
-    bottom: 90, // Position above the tab bar
-    right: 20,
+    bottom: Platform.OS === 'ios' ? 90 : 70, // Position above the tab bar, adjusted for different platforms
+    right: getContainerPadding() / 2,
     zIndex: 10,
   },
   scrollToTopButtonInner: {

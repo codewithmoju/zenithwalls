@@ -97,7 +97,8 @@ export const ColorFilters = ({ data, filterName, filters, setFilters }) => {
 const styles = StyleSheet.create({
     SectionContainer: {
         gap: 12,
-        marginBottom: 8
+        marginBottom: 8,
+        width: '100%'
     },
     SectionTitle: {
         fontSize: hp(2.4),
@@ -108,7 +109,9 @@ const styles = StyleSheet.create({
     flexBoxWrap: {
         gap: 10,
         flexDirection: 'row',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        width: '100%',
+        justifyContent: 'flex-start'
     },
     buttonContainer: {
         overflow: 'hidden',

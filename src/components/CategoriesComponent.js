@@ -64,10 +64,13 @@ const CategoriesItems = ({ title, index, isActive, handleActiveCategory }) => {
 const styles = StyleSheet.create({
     FlatListContainer: {
         paddingHorizontal: wp(4),
-        gap: 8
+        gap: 8,
+        paddingVertical: 8,
+        width: '100%'
     },
     itemContainer: {
-        marginRight: 8
+        marginRight: 8,
+        marginBottom: 4
     },
     buttonContainer: {
         overflow: 'hidden',
@@ -89,6 +92,8 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.1,
         shadowRadius: 3,
+        minWidth: wp(20),
+        alignItems: 'center',
     },
     title: {
         fontSize: hp(1.9),

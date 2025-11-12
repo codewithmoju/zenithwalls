@@ -56,8 +56,9 @@ export const responsiveFont = (size) => {
 // Grid columns calculation
 export const getGridColumns = () => {
   const deviceType = getDeviceType();
+  // Optimize columns for different screen sizes
   const columns = {
-    mobile: 2,
+    mobile: screenWidth < 360 ? 1 : 2, // Single column for very small devices
     tablet: 3,
     desktop: 4,
     largeDesktop: 5,
@@ -120,9 +121,14 @@ export const getImageDimensions = () => {
   const padding = getContainerPadding();
   const spacing = 8;
   
+  // Calculate available width accounting for container padding and spacing between items
   const availableWidth = Math.min(screenWidth, getMaxContainerWidth()) - (padding * 2);
   const imageWidth = (availableWidth - (spacing * (columns - 1))) / columns;
-  const imageHeight = imageWidth * 1.5; // 3:2 aspect ratio
+  
+  // Adjust aspect ratio based on device type for better visual balance
+  const deviceType = getDeviceType();
+  const aspectRatio = deviceType === 'mobile' ? 1.3 : 1.5; // Slightly shorter on mobile
+  const imageHeight = imageWidth * aspectRatio;
   
   return { width: imageWidth, height: imageHeight };
 };
