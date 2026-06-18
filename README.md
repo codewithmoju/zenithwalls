@@ -14,11 +14,39 @@ Built with **Expo 53**, **React Native**, **React Navigation**, **Axios**, **Asy
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Feature Showcase](#feature-showcase)
+- [Core Features](#core-features)
+- [Tech Stack](#tech-stack)
+- [System Architecture](#system-architecture)
+- [Application Flow](#application-flow)
+- [Wallpaper Discovery Pipeline](#wallpaper-discovery-pipeline)
+- [Search, Filters, and Pagination](#search-filters-and-pagination)
+- [Favorites System](#favorites-system)
+- [Download and Native Storage System](#download-and-native-storage-system)
+- [Preview Experience](#preview-experience)
+- [Responsive Design](#responsive-design)
+- [API Integration](#api-integration)
+- [Local Data Model](#local-data-model)
+- [Folder Structure](#folder-structure)
+- [Important Files](#important-files)
+- [Security Notes](#security-notes)
+- [Installation](#installation)
+- [Available Scripts](#available-scripts)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
+
+---
+
 ## Overview
 
 **Zenith Walls** is a mobile-first wallpaper discovery app designed to help users explore, preview, save, and organize high-quality wallpapers.
 
-The app fetches wallpaper data from an image service, processes the response, filters duplicate results, and renders wallpapers through a premium dark UI with a responsive masonry-style grid.
+The app fetches wallpaper data from Pixabay, formats request parameters, filters duplicate results, optimizes image URLs, and renders wallpapers through a premium dark UI with a responsive masonry-style grid.
+
+It is built as a complete wallpaper experience rather than a simple image list. The app includes discovery, search, filters, categories, preview, favorites, downloads, profile, settings, privacy, terms, and about screens.
 
 ---
 
@@ -26,20 +54,24 @@ The app fetches wallpaper data from an image service, processes the response, fi
 
 <img src="./assets/readme/feature-showcase.svg" alt="Zenith Walls Feature Showcase" width="100%" />
 
+---
+
 ## Core Features
 
-- Wallpaper discovery from an external image service.
+- Wallpaper discovery from Pixabay API.
 - Debounced keyword search.
 - Category-based browsing.
 - Filter modal with active filter chips.
 - Infinite scroll pagination.
 - Pull-to-refresh.
+- Duplicate wallpaper prevention.
+- Optimized image URL handling.
 - Responsive masonry-style image grid.
 - Wallpaper preview screen.
 - Similar wallpaper recommendations.
 - Favorites system with local persistence.
 - Download history with local persistence.
-- Gallery save workflow using native device APIs.
+- Gallery save workflow using Expo native device APIs.
 - Share workflow.
 - Profile and settings screens.
 - Privacy, terms, and about screens.
@@ -98,11 +130,15 @@ The app fetches wallpaper data from an image service, processes the response, fi
 ```text
 Expo App
   ↓
+GestureHandlerRootView
+  ↓
+Global Context Providers
+  ↓
 Navigation Layer
   ↓
-Home Discovery UI
+Wallpaper Discovery UI
   ↓
-API Client
+Pixabay API Client
   ↓
 Image Grid and Preview
   ↓
@@ -158,7 +194,9 @@ Stack Navigator
 
 ---
 
-## Wallpaper Discovery Flow
+## Wallpaper Discovery Pipeline
+
+<img src="./assets/readme/discovery-pipeline.svg" alt="Zenith Walls Wallpaper Discovery Pipeline" width="100%" />
 
 ```text
 User opens Home
@@ -167,7 +205,7 @@ User opens Home
 Home calls fetchImages()
       │
       ▼
-fetchImages builds request params
+fetchImages builds optimized request params
       │
       ▼
 apiCall(params)
@@ -176,7 +214,7 @@ apiCall(params)
 formatUrl(params)
       │
       ▼
-Axios GET request
+Axios GET request to Pixabay
       │
       ▼
 Response images are processed
@@ -187,6 +225,8 @@ Duplicate images are filtered
       ▼
 Images are rendered in ImageGrid
 ```
+
+The discovery screen protects performance by limiting page size, enabling safe search, requesting minimum image dimensions, avoiding duplicate IDs, and using smaller web image URLs for grid rendering.
 
 ---
 
@@ -228,6 +268,27 @@ Fetch next page
 Append new unique images
 ```
 
+### Filter Flow
+
+```text
+User opens filter modal
+      │
+      ▼
+User selects filter values
+      │
+      ▼
+Applyfilter() closes modal
+      │
+      ▼
+Current images reset
+      │
+      ▼
+Filtered request is sent
+      │
+      ▼
+Active filter chips appear
+```
+
 ---
 
 ## Favorites System
@@ -241,9 +302,19 @@ favorites
   └── isFavorite(wallpaperId)
 ```
 
+### Persistence Key
+
+```text
+favorites
+```
+
+The favorites system is local-first. It stores wallpaper metadata on the device so users can return to previously saved wallpapers without creating an account.
+
 ---
 
-## Download System
+## Download and Native Storage System
+
+<img src="./assets/readme/native-systems.svg" alt="Zenith Walls Native Storage and Device Systems" width="100%" />
 
 Downloads are managed with `DownloadsContext` and Expo native APIs.
 
@@ -264,6 +335,27 @@ Add wallpaper metadata to downloads context
       │
       ▼
 Persist download history in AsyncStorage
+```
+
+### Download Context Capabilities
+
+```text
+downloads
+  ├── addDownload(wallpaperData)
+  ├── removeDownload(downloadId)
+  ├── isDownloaded(wallpaperId)
+  ├── getDownload(wallpaperId)
+  ├── clearAllDownloads()
+  ├── getDownloadsByCategory(category)
+  ├── getRecentDownloads(limit)
+  ├── getDownloadStats()
+  └── updateDownloadLocalPath(downloadId, localPath)
+```
+
+### Persistence Key
+
+```text
+zenith_downloads
 ```
 
 ---
@@ -304,6 +396,81 @@ The app adjusts:
 
 ---
 
+## API Integration
+
+The API layer is located in:
+
+```text
+src/API/index.js
+```
+
+### API Flow
+
+```text
+apiCall(params)
+      │
+      ▼
+formatUrl(params)
+      │
+      ▼
+Append query params
+      │
+      ▼
+Axios GET request
+      │
+      ▼
+Return success or error object
+```
+
+### Default API Behavior
+
+- Uses Pixabay API.
+- Enables safe search.
+- Enables editor's choice by default.
+- Encodes search query values.
+- Returns structured success or failure objects.
+
+---
+
+## Local Data Model
+
+### Favorite Wallpaper Object
+
+```text
+favoriteWallpaper
+├── id
+├── webformatURL
+├── largeImageURL
+├── imageWidth
+├── imageHeight
+├── user
+├── tags
+├── views
+└── downloads
+```
+
+### Download Object
+
+```text
+download
+├── id
+├── imageWidth
+├── imageHeight
+├── largeImageURL
+├── webformatURL
+├── user
+├── tags
+├── views
+├── downloads
+├── category
+├── downloadedAt
+├── fileName
+├── fileSize
+└── localPath
+```
+
+---
+
 ## Folder Structure
 
 ```text
@@ -312,7 +479,9 @@ zenithwalls/
 │   └── readme/
 │       ├── hero-banner.svg
 │       ├── app-architecture.svg
-│       └── feature-showcase.svg
+│       ├── feature-showcase.svg
+│       ├── discovery-pipeline.svg
+│       └── native-systems.svg
 │
 ├── src/
 │   ├── API/
@@ -343,6 +512,10 @@ Defines the app navigation system, stack routes, bottom tabs, blur tab backgroun
 
 Main discovery screen. Handles search, pagination, filtering, categories, pull-to-refresh, duplicate prevention, infinite scroll, and wallpaper loading.
 
+### src/API/index.js
+
+Pixabay API integration layer. Builds request URLs, appends params, performs Axios requests, and returns structured responses.
+
 ### src/components/ImageGrid.js
 
 Responsive masonry-style image grid. Handles image caching, retry logic, adaptive columns, loading states, and navigation to the preview screen.
@@ -358,6 +531,22 @@ Global favorites state manager backed by AsyncStorage.
 ### src/constants/DownloadsContext.js
 
 Global download history manager backed by AsyncStorage.
+
+---
+
+## Security Notes
+
+This repository currently includes a Pixabay API key directly inside the API file. Before production deployment, move API credentials into environment variables.
+
+Recommended production improvements:
+
+- Move API keys to `.env`.
+- Use `EXPO_PUBLIC_PIXABAY_API_KEY` for Expo configuration.
+- Add request failure UI for API limits or network errors.
+- Add rate-limit handling.
+- Avoid logging sensitive errors in production.
+- Review media permissions for Android and iOS deployment.
+- Add privacy disclosures for downloads and gallery access.
 
 ---
 
@@ -384,6 +573,7 @@ npm run web
 
 ## Future Improvements
 
+- Move Pixabay API key to environment variables.
 - Add real app screenshots or GIF demo.
 - Add offline favorites cache with thumbnails.
 - Add wallpaper collections.
@@ -396,6 +586,7 @@ npm run web
 - Add better error and retry UI for failed requests.
 - Add unit tests for utilities and contexts.
 - Add EAS Build configuration documentation.
+- Add app store deployment documentation.
 
 ---
 
@@ -409,6 +600,7 @@ This repository demonstrates:
 - Debounced search.
 - Infinite scrolling.
 - Responsive masonry image grid.
+- Duplicate result filtering.
 - Expo FileSystem image caching.
 - Expo Media Library downloads.
 - AsyncStorage-backed favorites and downloads.
